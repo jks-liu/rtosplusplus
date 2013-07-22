@@ -7,6 +7,7 @@ public:
     /* The stack grow down, stack_top points invalid data. */
     unsigned int stack_top;
   };
+  RtosPlusPlus(void);
   int create(Thread *t,
              const int /* must be 0*/,
              void *(*start_routine)(void *),
