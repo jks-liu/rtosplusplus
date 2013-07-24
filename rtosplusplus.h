@@ -1,6 +1,10 @@
 #ifndef RTOSPLUSPLUS_H_
 #define RTOSPLUSPLUS_H_
 
+/* **********************************************************************
+ * Max number of threads is 7
+ * ***********************************************************************/
+
 #include "rtosplusplus-config.h"
 
 class RtosPlusPlus {
@@ -17,6 +21,9 @@ private:
   uint8_t threads_num_;
   TCB tcbs_[THREADS_NUM];
 };
+
+static void push_stack_interrput(void) {
+  
 
 #endif /* RTOSPLUSPLUS_H_ */
 
