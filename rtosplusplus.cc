@@ -56,10 +56,10 @@ static void switch_thread(void) {
             OSNextTaskID < OS_TASKS && !(OSRdyTbl & OSMapTbl[OSNextTaskID]);
             OSNextTaskID++);
     OSTaskRunningPrio = OSNextTaskID ;
-    cli(); // 保护堆栈转换
+    cli(); 
     SP=TCB[OSTaskRunningPrio].OSTaskStackTop;
     sei();
-    // 根据中断时的出栈次序
+    
     __asm__ __volatile__("POP R29 ");
     __asm__ __volatile__("POP R28 ");
     __asm__ __volatile__("POP R31 ");
@@ -74,10 +74,10 @@ static void switch_thread(void) {
     __asm__ __volatile__("POP R20 ");
     __asm__ __volatile__("POP R19 ");
     __asm__ __volatile__("POP R18 ");
-    __asm__ __volatile__("POP __tmp_reg__ "); //SERG 出栈并恢复
+    __asm__ __volatile__("POP __tmp_reg__ "); 
     __asm__ __volatile__("OUT __SREG__,__tmp_reg__ "); //
-    __asm__ __volatile__("POP __tmp_reg__ "); //R0 出栈
-    __asm__ __volatile__("POP __zero_reg__ "); //R1 出栈// 中断时出栈完成
+    __asm__ __volatile__("POP __tmp_reg__ "); 
+    __asm__ __volatile__("POP __zero_reg__ "); 
 }
   
 

@@ -16,17 +16,17 @@
 #include <avr/io.h>
 #include <avr/Interrupt.h>
 #include <util/delay.h>
-unsigned char Stack[200]; // 建立一个 200 字节的人工堆栈
-unsigned char OSMapTbl[9]={0x01,0x02,0x04,0x08,0x10,0x20,0x40,0x80,0x00};// 建一个常数表
-register unsigned char OSRdyTbl asm("r2"); // 任务运行就绪表
-register unsigned char OSTaskRunningPrio asm("r3"); // 正在运行的任务
-#define OS_TASKS 3 // 设定运行任务的数量
-struct TaskCtrBlock // 任务控制块
+unsigned char Stack[200]; 
+unsigned char OSMapTbl[9]={0x01,0x02,0x04,0x08,0x10,0x20,0x40,0x80,0x00};
+register unsigned char OSRdyTbl asm("r2"); 
+register unsigned char OSTaskRunningPrio asm("r3"); 
+#define OS_TASKS 3
+struct TaskCtrBlock 
 {
-    unsigned int OSTaskStackTop; // 保存任务的堆栈顶
-    unsigned int OSWaitTick; // 任务延时时钟
+    unsigned int OSTaskStackTop; 
+    unsigned int OSWaitTick;
 } TCB[OS_TASKS+1];
-// 防止被编译器占用
+
 register unsigned char tempR4 asm("r4");
 register unsigned char tempR5 asm("r5");
 register unsigned char tempR6 asm("r6");
@@ -41,36 +41,36 @@ register unsigned char tempR14 asm("r14");
 register unsigned char tempR15 asm("r15");
 register unsigned char tempR16 asm("r16");
 register unsigned char tempR17 asm("r17");
-// 建立任务
+
 void OSTaskCreate(void (*Task)(void),unsigned char *Stack,unsigned char TaskID)
 {
     unsigned char i;
-    *Stack--=(unsigned int)Task; // 将任务的地址低位压入堆栈，
-    *Stack--=(unsigned int)Task>>8; // 将任务的地址高位压入堆栈，
+    *Stack--=(unsigned int)Task; 
+    *Stack--=(unsigned int)Task>>8;
     *Stack--=0x00; //R1 __zero_reg__
     *Stack--=0x00; //R0 __tmp_reg__
-    *Stack--=0x80; //SREG 在任务中，开启全局中断
-    for(i=0;i<14;i++) // 在 avr-libc 中的 FAQ 中的 What registers are used by the C compiler?
-        *Stack--=i; // 描述了寄存器的作用
-    TCB[TaskID].OSTaskStackTop=(unsigned int)Stack; // 将人工堆栈的栈顶，保存到堆栈的数组中
-    OSRdyTbl|=OSMapTbl[TaskID]; // 将任务在就绪表中就绪
+    *Stack--=0x80;
+    for(i=0;i<14;i++) 
+        *Stack--=i;
+    TCB[TaskID].OSTaskStackTop=(unsigned int)Stack; 
+    OSRdyTbl|=OSMapTbl[TaskID]; 
 }
-// 开始任务调度 , 从最低优先级的任务的开始
+
 void OSStartTask(void)
 {
     OSTaskRunningPrio=OS_TASKS;
     SP=TCB[OS_TASKS].OSTaskStackTop+17;
     __asm__ __volatile__( "reti" );
 }
-// 进行任务调度
+
 void OSSched(void)
 {
-    // 根据中断时保存寄存器的次序入栈，模拟一次中断后，入栈的情况
+    
     __asm__ __volatile__("PUSH __zero_reg__ "); //R1
     __asm__ __volatile__("PUSH __tmp_reg__ "); //R0
-    __asm__ __volatile__("IN __tmp_reg__,__SREG__ "); // 保存状态寄存 器SREG
+    __asm__ __volatile__("IN __tmp_reg__,__SREG__ "); 
     __asm__ __volatile__("PUSH __tmp_reg__ ");
-    __asm__ __volatile__("CLR __zero_reg__ "); //R0 重新清零
+    __asm__ __volatile__("CLR __zero_reg__ "); 
     __asm__ __volatile__("PUSH R18 ");
     __asm__ __volatile__("PUSH R19 ");
     __asm__ __volatile__("PUSH R20 ");
@@ -83,18 +83,18 @@ void OSSched(void)
     __asm__ __volatile__("PUSH R27 ");
     __asm__ __volatile__("PUSH R30 ");
     __asm__ __volatile__("PUSH R31 ");
-    __asm__ __volatile__("PUSH R28 "); //R28 与 R29 用于建立在堆栈上的指针
-    __asm__ __volatile__("PUSH R29 "); // 入栈完成
-    TCB[OSTaskRunningPrio].OSTaskStackTop=SP; // 将正在运行的任务的堆栈顶保存
-    unsigned char OSNextTaskID; // 在现有堆栈上开设新的空间
-    for (OSNextTaskID = 0; // 进行任务调度
+    __asm__ __volatile__("PUSH R28 "); 
+    __asm__ __volatile__("PUSH R29 ");
+    TCB[OSTaskRunningPrio].OSTaskStackTop=SP; 
+    unsigned char OSNextTaskID; 
+    for (OSNextTaskID = 0; 
             OSNextTaskID < OS_TASKS && !(OSRdyTbl & OSMapTbl[OSNextTaskID]);
             OSNextTaskID++);
     OSTaskRunningPrio = OSNextTaskID ;
-    cli(); // 保护堆栈转换
+    cli(); 
     SP=TCB[OSTaskRunningPrio].OSTaskStackTop;
     sei();
-    // 根据中断时的出栈次序
+    
     __asm__ __volatile__("POP R29 ");
     __asm__ __volatile__("POP R28 ");
     __asm__ __volatile__("POP R31 ");
@@ -109,27 +109,27 @@ void OSSched(void)
     __asm__ __volatile__("POP R20 ");
     __asm__ __volatile__("POP R19 ");
     __asm__ __volatile__("POP R18 ");
-    __asm__ __volatile__("POP __tmp_reg__ "); //SERG 出栈并恢复
+    __asm__ __volatile__("POP __tmp_reg__ "); 
     __asm__ __volatile__("OUT __SREG__,__tmp_reg__ "); //
-    __asm__ __volatile__("POP __tmp_reg__ "); //R0 出栈
-    __asm__ __volatile__("POP __zero_reg__ "); //R1 出栈// 中断时出栈完成
+    __asm__ __volatile__("POP __tmp_reg__ ");
+    __asm__ __volatile__("POP __zero_reg__ "); 
 }
 void OSTimeDly(unsigned int ticks)
 {
-    if(ticks) // 当延时有效
+    if(ticks)
     {
         OSRdyTbl &=~OSMapTbl[OSTaskRunningPrio];
         TCB[OSTaskRunningPrio].OSWaitTick=ticks;
-        OSSched(); // 从新调度
+        OSSched(); 
     }
 }
 
-void TCN0Init(void) // 计时器 0
+void TCN0Init(void)
 {
 //    TCCR0 = 0;
-//    TCCR0 |= (1<<CS02); // 256 预分频
-//    TIMSK |= (1<<TOIE0); // T0 溢出中断允许
-//    TCNT0 = 100; // 置计数起始值
+//    TCCR0 |= (1<<CS02); 
+//    TIMSK |= (1<<TOIE0); 
+//    TCNT0 = 100; 
 //    {
         /* timer2 */
         TIMSK2 = _BV(OCIE0A);  // Enable Interrupt TimerCounter2 Compare Match A (SIG_OUTPUT_COMPARE2A)
@@ -146,14 +146,14 @@ ISR(TIMER2_COMPA_vect)
 {
     ++g_jiffies; 
     if (0 == (g_jiffies % 22/*72*/)) {
-        for(int i=0;i<OS_TASKS;i++) // 任务时钟
+        for(int i=0;i<OS_TASKS;i++) 
         {
             if(TCB[i].OSWaitTick)
             {
                 TCB[i].OSWaitTick--;
-                if(TCB[i].OSWaitTick==0) // 当任务时钟到时 , 必须是由定时器减时的才行
+                if(TCB[i].OSWaitTick==0) 
                 {
-                    OSRdyTbl |= OSMapTbl[i]; // 使任务在就绪表中置位
+                    OSRdyTbl |= OSMapTbl[i]; 
                 }
             }
         }
@@ -164,14 +164,13 @@ ISR(TIMER2_COMPA_vect)
 SIGNAL(SIG_OVERFLOW0)
 {
     unsigned char i;
-    for(i=0;i<OS_TASKS;i++) // 任务时钟
-    {
+    for(i=0;i<OS_TASKS;i++) 
         if(TCB[i].OSWaitTick)
         {
             TCB[i].OSWaitTick--;
-            if(TCB[i].OSWaitTick==0) // 当任务时钟到时 , 必须是由定时器减时的才行
+            if(TCB[i].OSWaitTick==0) 
             {
-                OSRdyTbl |= OSMapTbl[i]; // 使任务在就绪表中置位
+                OSRdyTbl |= OSMapTbl[i]; 
             }
         }
     }
@@ -206,7 +205,7 @@ void TaskScheduler(void)
 {
     while(1)
     {
-        OSSched(); // 反复进行调度
+        OSSched(); 
     }
 }
 int main(void)
