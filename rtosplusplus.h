@@ -2,28 +2,32 @@
 #define RTOSPLUSPLUS_H_
 
 /* **********************************************************************
- * Max number of threads is 7
+ * There are 7 priorities. 
  * ***********************************************************************/
 
-#include "rtosplusplus-config.h"
+// #include "rtosplusplus-config.h"
+#include "list.h"
+#include <inttypes.h>
+
+extern RtosPlusPlus ospp;
 
 class RtosPlusPlus {
 public:
   struct TCB { // Thread Control Block
     /* The stack grow down, stack_top points invalid data. */
+    List::ListHead node;
     unsigned int stack_top;
     void *(*start_routine)(void *);
     void *arg
+    uint8_t priority;
   };
   RtosPlusPlus(void(*hook)(RtosPlusPlus *));
-  int create(TCB const &thread);
+  int create(TCB *thread);
 private:
-  uint8_t threads_num_;
-  TCB tcbs_[THREADS_NUM];
+  List thread_list_[8];
+  TCB *running_thread;
+  TCB idle_thread;
 };
-
-static void push_stack_interrput(void) {
-  
 
 #endif /* RTOSPLUSPLUS_H_ */
 
