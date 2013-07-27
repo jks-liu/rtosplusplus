@@ -28,7 +28,7 @@ public:
     uint8_t priority;
     Status status;
   };
-  RtosPlusPlus(void(*hook)(RtosPlusPlus *));
+  RtosPlusPlus(void);
   int create(TCB *thread);
   void dispatch(void);
 private:

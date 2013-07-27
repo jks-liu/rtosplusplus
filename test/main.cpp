@@ -240,18 +240,25 @@ void TCN0Init(void)
 int main(int argc, char *argv[])
 {
   TCN0Init();
-  DDRC |= 0x09;   
+  DDRC &= ~0x09;   
   char a[100];
   char a1[100];
   RtosPlusPlus::TCB b, b1;
-  b.stack_top = (unsigned int)a;
-  b1.stack_top = (unsigned int)a1;
+  b.stack_top = (unsigned int)(a + 99);
+  b1.stack_top = (unsigned int)(a1 + 99);
   b.start_routine = Task0;
   b1.start_routine = Task1;
+  b.priority = 0;
+  b1.priority = 0;
   
   ospp.create(&b);
   ospp.create(&b1);
   sei();
+  while (1) {
+    //PORTC ^= 0x08;
+    //PORTC ^= 0x01;
+    //_delay_ms(200);
+  }
   return 0;
 }
 

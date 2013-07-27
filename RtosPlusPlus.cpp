@@ -8,7 +8,6 @@ uint8_t register g_running_priority asm("r2");
 uint8_t register g_running_thread_in_a_priority asm("r3");
 uint8_t register g_existing_thread asm("r4");
 
-void(*g_hook)(RtosPlusPlus *);
 
 // Bit0 has the highest priority.
 register uint8_t g_ready_priorities asm("r5");
@@ -27,7 +26,7 @@ register uint8_t g_unuse15 asm("r15");
 register uint8_t g_CANNOTUSE asm("r16");
 register uint8_t g_unuse17 asm("r17");
 
-__attribute__((naked)) static void
+__attribute__((naked)) inline static void
 push_stack_like_interrupt(void) {
   asm volatile("push __zero_reg__"          "\n\t"); // r1
   asm volatile("push __tmp_reg__"           "\n\t");  // r0
@@ -84,6 +83,7 @@ __attribute__((used)) static void dispatch_thread(void) {
   asm volatile("out __SREG__,__tmp_reg__" "\n\t");
   asm volatile("pop __tmp_reg__"          "\n\t"); 
   asm volatile("pop __zero_reg__"         "\n\t"); 
+  __asm__ __volatile__("RETI                      \n\t");
 }
 
 ISR(TIMER2_COMPA_vect) {
@@ -91,9 +91,7 @@ ISR(TIMER2_COMPA_vect) {
 }
   
 
-RtosPlusPlus::RtosPlusPlus(void(*hook)(RtosPlusPlus *)) {
-  g_hook = hook;
-  
+RtosPlusPlus::RtosPlusPlus(void) {
   thread_heads_[OSPP_PRIORITIES_NUM - 1].add(&(idle_thread.node));
   running_thread = &idle_thread;
   idle_thread.status = kRunning;
@@ -122,7 +120,7 @@ void RtosPlusPlus::dispatch(void) {
     if (thread_number_of_each_priority_[i] != 0) {
       running_thread =(TCB *)(
           thread_heads_[i].is_last(running_threads_[i]) ?
-          thread_heads_[i].get(0): running_threads_[i]->next);
+          thread_heads_[i].get(0) : running_threads_[i]->next);
       break;
     }
   }
@@ -130,7 +128,7 @@ void RtosPlusPlus::dispatch(void) {
 }
       
     
-RtosPlusPlus ospp(0);
+RtosPlusPlus ospp;
 
 
 
