@@ -13,7 +13,7 @@
  * Mabey escape characters will be better,
  * but i don't love it. :( */
 
-#include "../rtosplusplus.h"
+#include "../RtosPlusPlus.hpp"
 
 #include <avr/io.h>
 #include <avr/interrupt.h>
@@ -129,20 +129,6 @@ void OSTimeDly(unsigned int ticks)
     }
 }
 
-void TCN0Init(void)
-{
-//    TCCR0 = 0;
-//    TCCR0 |= (1<<CS02); 
-//    TIMSK |= (1<<TOIE0); 
-//    TCNT0 = 100; 
-//    {
-        /* timer2 */
-        TIMSK2 = _BV(OCIE0A);  // Enable Interrupt TimerCounter2 Compare Match A (SIG_OUTPUT_COMPARE2A)
-        TCCR2A = _BV(WGM01);  // Mode = CTC
-        TCCR2B = _BV(CS22);   // 8mHz / 64
-        OCR2A = 55;        /* 2272 ticks per sec */
-//    }
-}
 
 extern volatile  uint32_t g_jiffies;
 
@@ -181,23 +167,6 @@ SIGNAL(SIG_OVERFLOW0)
     }
     TCNT0=100;
 }*/
-void Task0(void)
-{
-    unsigned char i=0;
-    while(1){
-        PORTC ^= 0x08;
-        OSTimeDly(50);
-    }
-}
-void Task1(void)
-{
-    unsigned char i=0;
-    while(1)
-    {
-        PORTC ^= 0x01;
-        OSTimeDly(100);
-    }
-}
 void Task2(void)
 {
     while(1)
@@ -235,15 +204,58 @@ int main1(void)
 }
 
 #endif 
+void *Task0(void *a)
+{
+    while(1){
+        PORTC ^= 0x08;
+        _delay_ms(200);
+    }
+    return 0;
+}
+void *Task1(void *a)
+{
+    while(1)
+    {
+        PORTC ^= 0x01;
+        _delay_ms(200);
+    }
+    return 0;
+}
+
+void TCN0Init(void)
+{
+//    TCCR0 = 0;
+//    TCCR0 |= (1<<CS02); 
+//    TIMSK |= (1<<TOIE0); 
+//    TCNT0 = 100; 
+//    {
+        /* timer2 */
+        TIMSK2 = _BV(OCIE0A);  // Enable Interrupt TimerCounter2 Compare Match A (SIG_OUTPUT_COMPARE2A)
+        TCCR2A = _BV(WGM01);  // Mode = CTC
+        TCCR2B = _BV(CS22);   // 8mHz / 64
+        OCR2A = 55;        /* 2272 ticks per sec */
+//    }
+}
 
 int main(int argc, char *argv[])
 {
-  ospp.create(0);
+  TCN0Init();
+  DDRC |= 0x09;   
+  char a[100];
+  char a1[100];
+  RtosPlusPlus::TCB b, b1;
+  b.stack_top = (unsigned int)a;
+  b1.stack_top = (unsigned int)a1;
+  b.start_routine = Task0;
+  b1.start_routine = Task1;
+  
+  ospp.create(&b);
+  ospp.create(&b1);
   sei();
   return 0;
 }
 
-
+  
 
 int main0(void)
 {

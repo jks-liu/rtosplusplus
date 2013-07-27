@@ -7,7 +7,7 @@ public:
     ListHead *next;
     ListHead *prev;
   };
-  List(void) {
+  List(void): size_(0) {
     list_head_.next = &list_head_;
     list_head_.prev = &list_head_;
   }
@@ -23,7 +23,9 @@ public:
     }
     return lh;
   }
-      
+  bool is_last(ListHead *node) {
+    return node->next == &list_head_;
+  }
 private:
   ListHead list_head_;
   void list_add(ListHead *node,

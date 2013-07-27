@@ -1,4 +1,4 @@
-#include "rtosplusplus.h"
+#include "RtosPlusPlus.hpp"
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <inttypes.h>
@@ -49,7 +49,7 @@ push_stack_like_interrupt(void) {
   asm volatile("push r31"                   "\n\t");
 }
 
-static void dispatch_thread(void) {
+__attribute__((used)) static void dispatch_thread(void) {
   push_stack_like_interrupt();
   asm volatile("dispatch_thread_from_interrupt:" "\n\t");
   asm volatile("push r28" "\n\t");
@@ -64,29 +64,34 @@ static void dispatch_thread(void) {
     // cli(); 
     // SP=TCB[OSTaskRunningPrio].OSTaskStackTop;
     // sei();
+  ospp.dispatch();
     
-    __asm__ __volatile__("POP R29 ");
-    __asm__ __volatile__("POP R28 ");
-    __asm__ __volatile__("POP R31 ");
-    __asm__ __volatile__("POP R30 ");
-    __asm__ __volatile__("POP R27 ");
-    __asm__ __volatile__("POP R26 ");
-    __asm__ __volatile__("POP R25 ");
-    __asm__ __volatile__("POP R24 ");
-    __asm__ __volatile__("POP R23 ");
-    __asm__ __volatile__("POP R22 ");
-    __asm__ __volatile__("POP R21 ");
-    __asm__ __volatile__("POP R20 ");
-    __asm__ __volatile__("POP R19 ");
-    __asm__ __volatile__("POP R18 ");
-    __asm__ __volatile__("POP __tmp_reg__ "); 
-    __asm__ __volatile__("OUT __SREG__,__tmp_reg__ "); //
-    __asm__ __volatile__("POP __tmp_reg__ "); 
-    __asm__ __volatile__("POP __zero_reg__ "); 
+  asm volatile("pop r29"                  "\n\t");
+  asm volatile("pop r28"                  "\n\t");
+  asm volatile("pop r31"                  "\n\t");
+  asm volatile("pop r30"                  "\n\t");
+  asm volatile("pop r27"                  "\n\t");
+  asm volatile("pop r26"                  "\n\t");
+  asm volatile("pop r25"                  "\n\t");
+  asm volatile("pop r24"                  "\n\t");
+  asm volatile("pop r23"                  "\n\t");
+  asm volatile("pop r22"                  "\n\t");
+  asm volatile("pop r21"                  "\n\t");
+  asm volatile("pop r20"                  "\n\t");
+  asm volatile("pop r19"                  "\n\t");
+  asm volatile("pop r18"                  "\n\t");
+  asm volatile("pop __tmp_reg__"          "\n\t"); 
+  asm volatile("out __SREG__,__tmp_reg__" "\n\t");
+  asm volatile("pop __tmp_reg__"          "\n\t"); 
+  asm volatile("pop __zero_reg__"         "\n\t"); 
+}
+
+ISR(TIMER2_COMPA_vect) {
+  asm volatile("rjmp dispatch_thread_from_interrupt \n\r");
 }
   
 
-RtosPlusPlus::RtosPlusPlus(void(*hook)(RtosPlusPlus *)): size_(0) {
+RtosPlusPlus::RtosPlusPlus(void(*hook)(RtosPlusPlus *)) {
   g_hook = hook;
   
   thread_heads_[OSPP_PRIORITIES_NUM - 1].add(&(idle_thread.node));
@@ -94,29 +99,30 @@ RtosPlusPlus::RtosPlusPlus(void(*hook)(RtosPlusPlus *)): size_(0) {
   idle_thread.status = kRunning;
 }
 
-RtosPlusPlus::create(RtosPlusPlus::TCB *thread) {
+int RtosPlusPlus::create(RtosPlusPlus::TCB *thread) {
   thread_heads_[thread->priority].add(&(thread->node));
   thread->status = kReady;
-  running_threads_[thread->priority] = &(thread->node);
-  ++*(&g_priority0_ready + thread->priority);
+  running_threads_[thread->priority] = (List::ListHead *)thread;
+  ++thread_number_of_each_priority_[thread->priority];
   uint8_t *stack = (uint8_t *)(thread->stack_top);
   // High 8 bits
   *stack-- = (uint8_t)((unsigned int)(thread->start_routine) >> 8);
-  *stack-- = (uint8_t)(thread->start_routine);  // Low 8 bits
+  *stack-- = (uint8_t)(unsigned int)(thread->start_routine);  // Low 8 bits
   *stack-- = 0x00;      // r1 __zero_reg__
   *stack-- = 0x00;      // r0 __tmp_reg__
   *stack-- = 0x80;      // __SREG__
   stack -= 16;          // r18~r27, r30, r31, r28, r29, dispatch(2)
   thread->stack_top = (unsigned int)stack;
+  return 0;
 }
 
 void RtosPlusPlus::dispatch(void) {
   running_thread->stack_top = SP;
   for (unsigned char i = 0; i < OSPP_PRIORITIES_NUM; ++i) {
-    if (*(&g_priority0_ready + i) != 0) {
+    if (thread_number_of_each_priority_[i] != 0) {
       running_thread =(TCB *)(
-          running_threads_[i]->next == thread_heads_ + i ?
-          thread_heads_[i].next : running_threads_[i]->next);
+          thread_heads_[i].is_last(running_threads_[i]) ?
+          thread_heads_[i].get(0): running_threads_[i]->next);
       break;
     }
   }
@@ -124,7 +130,7 @@ void RtosPlusPlus::dispatch(void) {
 }
       
     
-RtosPlusPlus ospp;
+RtosPlusPlus ospp(0);
 
 
 

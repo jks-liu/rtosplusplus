@@ -35,10 +35,11 @@ private:
   /* Head of thread lists of 8 priorities. */
   List thread_heads_[OSPP_PRIORITIES_NUM];
   /* Running threads of each priority. */
-  List *running_threads_[OSPP_PRIORITIES_NUM];
+  List::ListHead *running_threads_[OSPP_PRIORITIES_NUM];
   TCB *running_thread;
   /* idle_thread is the main function */
   TCB idle_thread;
+  int thread_number_of_each_priority_[OSPP_PRIORITIES_NUM];
 };
 
 extern RtosPlusPlus ospp;
