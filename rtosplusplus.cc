@@ -1,30 +1,31 @@
 #include "rtosplusplus.h"
 #include <avr/io.h>
-#include <avr/Interrupt.h>
+#include <avr/interrupt.h>
 #include <inttypes.h>
 
-static uint8_t register g_running_priority asm("r2");
-static uint8_t register g_running_thread_in_a_priority asm("r3");
-static uint8_t register g_existing_thread asm("r4");
+// Definition with asm MUST NOT be static
+uint8_t register g_running_priority asm("r2");
+uint8_t register g_running_thread_in_a_priority asm("r3");
+uint8_t register g_existing_thread asm("r4");
 
-static void(*g_hook)(RtosPlusPlus *);
+void(*g_hook)(RtosPlusPlus *);
 
 // Bit0 has the highest priority.
-static register uint8_t g_ready_priorities asm("r5");
+register uint8_t g_ready_priorities asm("r5");
 
-static register uint8_t g_priority0_ready asm("r6");
-static register uint8_t g_priority1_ready asm("r7");
-static register uint8_t g_priority2_ready asm("r8");
-static register uint8_t g_priority3_ready asm("r9");
-static register uint8_t g_priority4_ready asm("r10");
-static register uint8_t g_priority5_ready asm("r11");
-static register uint8_t g_priority6_ready asm("r12");
-static register uint8_t g_priority7_ready asm("r13");
+register uint8_t g_priority0_ready asm("r6");
+register uint8_t g_priority1_ready asm("r7");
+register uint8_t g_priority2_ready asm("r8");
+register uint8_t g_priority3_ready asm("r9");
+register uint8_t g_priority4_ready asm("r10");
+register uint8_t g_priority5_ready asm("r11");
+register uint8_t g_priority6_ready asm("r12");
+register uint8_t g_priority7_ready asm("r13");
 
-static register uint8_t g_unuse14 asm("r14");
-static register uint8_t g_unuse15 asm("r15");
-static register uint8_t g_CANNOTUSE asm("r16");
-static register uint8_t g_unuse17 asm("r17");
+register uint8_t g_unuse14 asm("r14");
+register uint8_t g_unuse15 asm("r15");
+register uint8_t g_CANNOTUSE asm("r16");
+register uint8_t g_unuse17 asm("r17");
 
 __attribute__((naked)) static void
 push_stack_like_interrupt(void) {
@@ -48,9 +49,9 @@ push_stack_like_interrupt(void) {
   asm volatile("push r31"                   "\n\t");
 }
 
-static void switch_thread(void) {
+static void dispatch_thread(void) {
   push_stack_like_interrupt();
-  asm volatile("switch_thread_from_interrupt:" "\n\t");
+  asm volatile("dispatch_thread_from_interrupt:" "\n\t");
   asm volatile("push r28" "\n\t");
   asm volatile("push r29" "\n\t");
   
@@ -60,9 +61,9 @@ static void switch_thread(void) {
     //         OSNextTaskID < OS_TASKS && !(OSRdyTbl & OSMapTbl[OSNextTaskID]);
     //         OSNextTaskID++);
     // OSTaskRunningPrio = OSNextTaskID ;
-    cli(); 
-    SP=TCB[OSTaskRunningPrio].OSTaskStackTop;
-    sei();
+    // cli(); 
+    // SP=TCB[OSTaskRunningPrio].OSTaskStackTop;
+    // sei();
     
     __asm__ __volatile__("POP R29 ");
     __asm__ __volatile__("POP R28 ");
@@ -85,15 +86,58 @@ static void switch_thread(void) {
 }
   
 
-RtosPlusPlus::RtosPlusPlus(void(*hook)(RtosPlusPlus *)):
-  threads_num_(0) {
+RtosPlusPlus::RtosPlusPlus(void(*hook)(RtosPlusPlus *)): size_(0) {
   g_hook = hook;
+  
+  thread_heads_[OSPP_PRIORITIES_NUM - 1].add(&(idle_thread.node));
   running_thread = &idle_thread;
+  idle_thread.status = kRunning;
 }
 
-RtosPlusPlus::creat(RtosPlusPlus::TCB *thread) {
-  thread_list_[thread->priority].add
+RtosPlusPlus::create(RtosPlusPlus::TCB *thread) {
+  thread_heads_[thread->priority].add(&(thread->node));
+  thread->status = kReady;
+  running_threads_[thread->priority] = &(thread->node);
+  ++*(&g_priority0_ready + thread->priority);
+  uint8_t *stack = (uint8_t *)(thread->stack_top);
+  // High 8 bits
+  *stack-- = (uint8_t)((unsigned int)(thread->start_routine) >> 8);
+  *stack-- = (uint8_t)(thread->start_routine);  // Low 8 bits
+  *stack-- = 0x00;      // r1 __zero_reg__
+  *stack-- = 0x00;      // r0 __tmp_reg__
+  *stack-- = 0x80;      // __SREG__
+  stack -= 16;          // r18~r27, r30, r31, r28, r29, dispatch(2)
+  thread->stack_top = (unsigned int)stack;
 }
 
+void RtosPlusPlus::dispatch(void) {
+  running_thread->stack_top = SP;
+  for (unsigned char i = 0; i < OSPP_PRIORITIES_NUM; ++i) {
+    if (*(&g_priority0_ready + i) != 0) {
+      running_thread =(TCB *)(
+          running_threads_[i]->next == thread_heads_ + i ?
+          thread_heads_[i].next : running_threads_[i]->next);
+      break;
+    }
+  }
+  SP = running_thread->stack_top;
+}
+      
+    
 RtosPlusPlus ospp;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

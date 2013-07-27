@@ -11,21 +11,36 @@ public:
     list_head_.next = &list_head_;
     list_head_.prev = &list_head_;
   }
-  void add(ListHead *new) {
-    list_add(new, &list_head_, list_head_.next);
+  void add(ListHead *node) {
+    list_add(node, &list_head_, list_head_.next);
   }
-  
+  int size(void) {return size_;}
+  bool is_empty(void) {return size_ == 0;}
+  ListHead *get(int count) {  /* Count nust < size_ */
+    ListHead *lh = &list_head_;
+    for (int i = 0; i < count + 1; ++i) {
+      lh = lh->next;
+    }
+    return lh;
+  }
+      
 private:
   ListHead list_head_;
-  void list_add(ListHead *new,
+  void list_add(ListHead *node,
                  ListHead *prev,
                  ListHead *next) {
-    next->prev = new;
-    new->next = next;
-    new->prev = prev;
-    prev->next = new;
+    next->prev = node;
+    node->next = next;
+    node->prev = prev;
+    prev->next = node;
+    ++size_;
   }
-}
+  int size_;
+};
 
 #endif  /* LIST_H_ */
+
+
+
+
 

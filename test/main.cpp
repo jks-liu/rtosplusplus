@@ -13,9 +13,14 @@
  * Mabey escape characters will be better,
  * but i don't love it. :( */
 
+#include "../rtosplusplus.h"
+
 #include <avr/io.h>
-#include <avr/Interrupt.h>
+#include <avr/interrupt.h>
 #include <util/delay.h>
+
+#ifdef nfaijsbnfuiadbsfiuasdfiu
+
 unsigned char Stack[200]; 
 unsigned char OSMapTbl[9]={0x01,0x02,0x04,0x08,0x10,0x20,0x40,0x80,0x00};
 register unsigned char OSRdyTbl asm("r2"); 
@@ -195,7 +200,6 @@ void Task1(void)
 }
 void Task2(void)
 {
-    unsigned char i=0;
     while(1)
     {
         OSTimeDly(200);
@@ -208,7 +212,8 @@ void TaskScheduler(void)
         OSSched(); 
     }
 }
-int main(void)
+
+int main1(void)
 {
     TCN0Init();
     OSRdyTbl=0;
@@ -228,6 +233,16 @@ int main(void)
     OSStartTask();
     return 0;
 }
+
+#endif 
+
+int main(int argc, char *argv[])
+{
+  ospp.create(0);
+  sei();
+  return 0;
+}
+
 
 
 int main0(void)

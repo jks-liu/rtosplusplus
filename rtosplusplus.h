@@ -6,28 +6,42 @@
  * ***********************************************************************/
 
 // #include "rtosplusplus-config.h"
-#include "list.h"
+#include "List.h"
 #include <inttypes.h>
 
-extern RtosPlusPlus ospp;
+
+#define OSPP_PRIORITIES_NUM 8
 
 class RtosPlusPlus {
 public:
+  enum Status {
+    kRunning,
+    kSuspend,
+    kReady
+  };
   struct TCB { // Thread Control Block
     /* The stack grow down, stack_top points invalid data. */
     List::ListHead node;
     unsigned int stack_top;
     void *(*start_routine)(void *);
-    void *arg
+    void *arg;
     uint8_t priority;
+    Status status;
   };
   RtosPlusPlus(void(*hook)(RtosPlusPlus *));
   int create(TCB *thread);
+  void dispatch(void);
 private:
-  List thread_list_[8];
+  /* Head of thread lists of 8 priorities. */
+  List thread_heads_[OSPP_PRIORITIES_NUM];
+  /* Running threads of each priority. */
+  List *running_threads_[OSPP_PRIORITIES_NUM];
   TCB *running_thread;
+  /* idle_thread is the main function */
   TCB idle_thread;
 };
+
+extern RtosPlusPlus ospp;
 
 #endif /* RTOSPLUSPLUS_H_ */
 

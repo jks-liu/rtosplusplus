@@ -84,7 +84,7 @@ SRC =
 
 
 # List C++ source files here. (C dependencies are automatically generated.)
-CPPSRC = $(TARGET).cpp my_interrupt.cpp 
+CPPSRC = $(TARGET).cpp my_interrupt.cpp ../rtosplusplus.cc
 
 
 # List Assembler source files here.
