@@ -49,7 +49,26 @@ push_stack_like_interrupt(void) {
 }
 
 __attribute__((used)) static void dispatch_thread(void) {
-  push_stack_like_interrupt();
+//  push_stack_like_interrupt();
+  asm volatile("push __zero_reg__"          "\n\t"); // r1
+  asm volatile("push __tmp_reg__"           "\n\t");  // r0
+  // statement register
+  asm volatile("in   __tmp_reg__, __SREG__" "\n\t");
+  asm volatile("push __tmp_reg__"           "\n\t");
+  asm volatile("clr  __zero_reg__"          "\n\t"); 
+  asm volatile("push r18"                   "\n\t");
+  asm volatile("push r19"                   "\n\t");
+  asm volatile("push r20"                   "\n\t");
+  asm volatile("push r21"                   "\n\t");
+  asm volatile("push r22"                   "\n\t");
+  asm volatile("push r23"                   "\n\t");
+  asm volatile("push r24"                   "\n\t");
+  asm volatile("push r25"                   "\n\t");
+  asm volatile("push r26"                   "\n\t");
+  asm volatile("push r27"                   "\n\t");
+  asm volatile("push r30"                   "\n\t");
+  asm volatile("push r31"                   "\n\t");
+
   asm volatile("dispatch_thread_from_interrupt:" "\n\t");
   asm volatile("push r28" "\n\t");
   asm volatile("push r29" "\n\t");
@@ -64,6 +83,7 @@ __attribute__((used)) static void dispatch_thread(void) {
     // SP=TCB[OSTaskRunningPrio].OSTaskStackTop;
     // sei();
   ospp.dispatch();
+  asm volatile("out_dispatch:"            "\n\t");
     
   asm volatile("pop r29"                  "\n\t");
   asm volatile("pop r28"                  "\n\t");
@@ -83,10 +103,13 @@ __attribute__((used)) static void dispatch_thread(void) {
   asm volatile("out __SREG__,__tmp_reg__" "\n\t");
   asm volatile("pop __tmp_reg__"          "\n\t"); 
   asm volatile("pop __zero_reg__"         "\n\t"); 
+  asm volatile("sei \n\t");
   __asm__ __volatile__("RETI                      \n\t");
 }
 
 ISR(TIMER2_COMPA_vect) {
+    int a = 8;
+    a = 9;
   asm volatile("rjmp dispatch_thread_from_interrupt \n\r");
 }
   
@@ -101,7 +124,7 @@ int RtosPlusPlus::create(RtosPlusPlus::TCB *thread) {
   thread_heads_[thread->priority].add(&(thread->node));
   thread->status = kReady;
   running_threads_[thread->priority] = (List::ListHead *)thread;
-  ++thread_number_of_each_priority_[thread->priority];
+  ++(thread_number_of_each_priority_[thread->priority]);
   uint8_t *stack = (uint8_t *)(thread->stack_top);
   // High 8 bits
   *stack-- = (uint8_t)((unsigned int)(thread->start_routine) >> 8);
@@ -109,22 +132,23 @@ int RtosPlusPlus::create(RtosPlusPlus::TCB *thread) {
   *stack-- = 0x00;      // r1 __zero_reg__
   *stack-- = 0x00;      // r0 __tmp_reg__
   *stack-- = 0x80;      // __SREG__
-  stack -= 16;          // r18~r27, r30, r31, r28, r29, dispatch(2)
+  stack -= 14;          // r18~r27, r30, r31, r28, r29, //dispatch(2)
   thread->stack_top = (unsigned int)stack;
   return 0;
 }
 
 void RtosPlusPlus::dispatch(void) {
-  running_thread->stack_top = SP;
+  running_thread->stack_top = SP + 2;
   for (unsigned char i = 0; i < OSPP_PRIORITIES_NUM; ++i) {
     if (thread_number_of_each_priority_[i] != 0) {
       running_thread =(TCB *)(
-          thread_heads_[i].is_last(running_threads_[i]) ?
-          thread_heads_[i].get(0) : running_threads_[i]->next);
+          running_threads_[i] = thread_heads_[i].is_last(running_threads_[i]) ?
+          thread_heads_[i].get(0) : running_threads_[i]->next);      
       break;
     }
   }
   SP = running_thread->stack_top;
+  asm volatile("rjmp out_dispatch \n\r");
 }
       
     

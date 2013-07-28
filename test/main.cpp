@@ -240,7 +240,8 @@ void TCN0Init(void)
 int main(int argc, char *argv[])
 {
   TCN0Init();
-  DDRC &= ~0x09;   
+  DDRC |= 0x09;   
+  PORTC |= 0x08;
   char a[100];
   char a1[100];
   RtosPlusPlus::TCB b, b1;
@@ -258,6 +259,7 @@ int main(int argc, char *argv[])
     //PORTC ^= 0x08;
     //PORTC ^= 0x01;
     //_delay_ms(200);
+    //Task0(0);
   }
   return 0;
 }

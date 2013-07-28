@@ -634,6 +634,9 @@ wflash:
 w328pflash:
 	avrdude -p atmega328p -P usb -c usbasp -U flash:w:main.hex
 
+love:
+	avrdude -p atmega328p -P usb -c usbasp -U flash:w:main.hex
+
 w328p8m:
 	avrdude -p atmega328p -P usb -c usbasp -U lfuse:w:0xe2:m
 
