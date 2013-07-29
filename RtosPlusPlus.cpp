@@ -48,7 +48,9 @@ push_stack_like_interrupt(void) {
   asm volatile("push r31"                   "\n\t");
 }
 
-__attribute__((used)) static void dispatch_thread(void) {
+__attribute__((used, naked)) static void dispatch_thread(void) {    
+  asm volatile("dispatch_thread_from_interrupt:" "\n\t");
+  cli();
 //  push_stack_like_interrupt();
   asm volatile("push __zero_reg__"          "\n\t"); // r1
   asm volatile("push __tmp_reg__"           "\n\t");  // r0
@@ -69,19 +71,9 @@ __attribute__((used)) static void dispatch_thread(void) {
   asm volatile("push r30"                   "\n\t");
   asm volatile("push r31"                   "\n\t");
 
-  asm volatile("dispatch_thread_from_interrupt:" "\n\t");
   asm volatile("push r28" "\n\t");
   asm volatile("push r29" "\n\t");
   
-    // TCB[OSTaskRunningPrio].OSTaskStackTop=SP;
-    // unsigned char OSNextTaskID;
-    // for (OSNextTaskID = 0;
-    //         OSNextTaskID < OS_TASKS && !(OSRdyTbl & OSMapTbl[OSNextTaskID]);
-    //         OSNextTaskID++);
-    // OSTaskRunningPrio = OSNextTaskID ;
-    // cli(); 
-    // SP=TCB[OSTaskRunningPrio].OSTaskStackTop;
-    // sei();
   ospp.dispatch();
   asm volatile("out_dispatch:"            "\n\t");
     
@@ -103,13 +95,11 @@ __attribute__((used)) static void dispatch_thread(void) {
   asm volatile("out __SREG__,__tmp_reg__" "\n\t");
   asm volatile("pop __tmp_reg__"          "\n\t"); 
   asm volatile("pop __zero_reg__"         "\n\t"); 
-  asm volatile("sei \n\t");
-  __asm__ __volatile__("RETI                      \n\t");
+  sei();
+  reti();
 }
 
-ISR(TIMER2_COMPA_vect) {
-    int a = 8;
-    a = 9;
+ISR(TIMER2_COMPA_vect, ISR_NAKED) {
   asm volatile("rjmp dispatch_thread_from_interrupt \n\r");
 }
   
@@ -117,12 +107,10 @@ ISR(TIMER2_COMPA_vect) {
 RtosPlusPlus::RtosPlusPlus(void) {
   thread_heads_[OSPP_PRIORITIES_NUM - 1].add(&(idle_thread.node));
   running_thread = &idle_thread;
-  idle_thread.status = kRunning;
 }
 
 int RtosPlusPlus::create(RtosPlusPlus::TCB *thread) {
   thread_heads_[thread->priority].add(&(thread->node));
-  thread->status = kReady;
   running_threads_[thread->priority] = (List::ListHead *)thread;
   ++(thread_number_of_each_priority_[thread->priority]);
   uint8_t *stack = (uint8_t *)(thread->stack_top);
@@ -132,13 +120,14 @@ int RtosPlusPlus::create(RtosPlusPlus::TCB *thread) {
   *stack-- = 0x00;      // r1 __zero_reg__
   *stack-- = 0x00;      // r0 __tmp_reg__
   *stack-- = 0x80;      // __SREG__
-  stack -= 14;          // r18~r27, r30, r31, r28, r29, //dispatch(2)
+  // TODO(chinatianma@gmail.com) 15 is by experiment, but why isn't 14?
+  stack -= 15;          // r18~r27, r30, r31, r28, r29
   thread->stack_top = (unsigned int)stack;
   return 0;
 }
 
 void RtosPlusPlus::dispatch(void) {
-  running_thread->stack_top = SP + 2;
+  running_thread->stack_top = SP + 4;
   for (unsigned char i = 0; i < OSPP_PRIORITIES_NUM; ++i) {
     if (thread_number_of_each_priority_[i] != 0) {
       running_thread =(TCB *)(
@@ -147,6 +136,8 @@ void RtosPlusPlus::dispatch(void) {
       break;
     }
   }
+  
+  asm volatile("nop \n\r");
   SP = running_thread->stack_top;
   asm volatile("rjmp out_dispatch \n\r");
 }

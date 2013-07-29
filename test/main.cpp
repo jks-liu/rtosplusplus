@@ -208,7 +208,7 @@ void *Task0(void *a)
 {
     while(1){
         PORTC ^= 0x08;
-        _delay_ms(200);
+        _delay_ms(100);
     }
     return 0;
 }
@@ -217,7 +217,7 @@ void *Task1(void *a)
     while(1)
     {
         PORTC ^= 0x01;
-        _delay_ms(200);
+        _delay_ms(100);
     }
     return 0;
 }
