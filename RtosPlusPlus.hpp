@@ -1,15 +1,12 @@
 #ifndef RTOSPLUSPLUS_H_
 #define RTOSPLUSPLUS_H_
 
-/* **********************************************************************
- * There are 7 priorities. 
- * ***********************************************************************/
-
 // #include "rtosplusplus-config.h"
 #include "List.h"
 #include <inttypes.h>
 
-
+// Only 7(0..6) priorities can be used, the last one(7) is used
+// for idle thread.
 #define OSPP_PRIORITIES_NUM 8
 
 class RtosPlusPlus {

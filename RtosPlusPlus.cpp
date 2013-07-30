@@ -8,7 +8,6 @@ uint8_t register g_running_priority asm("r2");
 uint8_t register g_running_thread_in_a_priority asm("r3");
 uint8_t register g_existing_thread asm("r4");
 
-
 // Bit0 has the highest priority.
 register uint8_t g_ready_priorities asm("r5");
 
@@ -26,32 +25,10 @@ register uint8_t g_unuse15 asm("r15");
 register uint8_t g_CANNOTUSE asm("r16");
 register uint8_t g_unuse17 asm("r17");
 
-__attribute__((naked)) inline static void
-push_stack_like_interrupt(void) {
-  asm volatile("push __zero_reg__"          "\n\t"); // r1
-  asm volatile("push __tmp_reg__"           "\n\t");  // r0
-  // statement register
-  asm volatile("in   __tmp_reg__, __SREG__" "\n\t");
-  asm volatile("push __tmp_reg__"           "\n\t");
-  asm volatile("clr  __zero_reg__"          "\n\t"); 
-  asm volatile("push r18"                   "\n\t");
-  asm volatile("push r19"                   "\n\t");
-  asm volatile("push r20"                   "\n\t");
-  asm volatile("push r21"                   "\n\t");
-  asm volatile("push r22"                   "\n\t");
-  asm volatile("push r23"                   "\n\t");
-  asm volatile("push r24"                   "\n\t");
-  asm volatile("push r25"                   "\n\t");
-  asm volatile("push r26"                   "\n\t");
-  asm volatile("push r27"                   "\n\t");
-  asm volatile("push r30"                   "\n\t");
-  asm volatile("push r31"                   "\n\t");
-}
-
 __attribute__((used, naked)) static void dispatch_thread(void) {    
   asm volatile("dispatch_thread_from_interrupt:" "\n\t");
   cli();
-//  push_stack_like_interrupt();
+
   asm volatile("push __zero_reg__"          "\n\t"); // r1
   asm volatile("push __tmp_reg__"           "\n\t");  // r0
   // statement register
@@ -137,26 +114,10 @@ void RtosPlusPlus::dispatch(void) {
     }
   }
   
-  asm volatile("nop \n\r");
   SP = running_thread->stack_top;
   asm volatile("rjmp out_dispatch \n\r");
 }
       
-    
+// The only global os instance.
 RtosPlusPlus ospp;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
