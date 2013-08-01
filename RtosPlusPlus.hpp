@@ -19,10 +19,13 @@ public:
   struct TCB { // Thread Control Block
     /* The stack grow down, stack_top points invalid data. */
     List::ListHead node;
+    
+    // User must assign below three variables before they create a thread.
     unsigned int stack_top;
     void *(*start_routine)(void *);
-    void *arg;
     uint8_t priority;
+
+    void *arg;
     Status status;
   };
   RtosPlusPlus(void);

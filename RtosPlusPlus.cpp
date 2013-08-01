@@ -26,11 +26,11 @@ register uint8_t g_CANNOTUSE asm("r16");
 register uint8_t g_unuse17 asm("r17");
 
 __attribute__((used, naked)) static void dispatch_thread(void) {    
-  asm volatile("dispatch_thread_from_interrupt:" "\n\t");
   cli();
+  asm volatile("dispatch_thread_from_interrupt:" "\n\t");
 
   asm volatile("push __zero_reg__"          "\n\t"); // r1
-  asm volatile("push __tmp_reg__"           "\n\t");  // r0
+  asm volatile("push __tmp_reg__"           "\n\t"); // r0
   // statement register
   asm volatile("in   __tmp_reg__, __SREG__" "\n\t");
   asm volatile("push __tmp_reg__"           "\n\t");
