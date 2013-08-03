@@ -11,15 +11,17 @@
 #include <avr/interrupt.h>
 #include <util/delay.h>
 
-#define DELAY_TIME 1000
+#define DELAY_TIME 50
 
 // The delay did not work well in ubuntu
 
 void *Task0(void *a)
 {
     while(1){
-      //PORTC ^= 0x08;
-        //        _delay_ms(DELAY_TIME);
+      PORTC ^= 0x08;
+      // _delay_ms(DELAY_TIME);
+      for (volatile long a = 0; a < 8000000; a++) {
+      }
     }
     return 0;
 }
